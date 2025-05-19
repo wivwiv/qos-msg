@@ -1,0 +1,11 @@
+node_modules
+.DS_Store
+.env
+qos-data/mnesia
+qos-data/trace
+qos-data/cluster.uuid
+qos-data/emqx_ds_builtin_site.eterm
+qos-data/node.uuid
+qos-data/emqx_ds_builtin_site.eterm
+qos-data/configs/*.args
+qos-data/configs/*.bak

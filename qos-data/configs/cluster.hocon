@@ -1,0 +1,237 @@
+# This file is generated. Do not edit.
+# The configs are results of online config changes from UI/API/CLI.
+# To persist configs in this file, copy the content to etc/base.hocon.
+actions {
+  mysql {
+    save-msg-log {
+      connector = local0mysql
+      created_at = 1747650543681
+      description = ""
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747650591915
+      parameters {
+        sql = """~
+          INSERT INTO message_logs(
+            mid, topic, qos, event, from_clientid, clientid, status
+          ) VALUES (${id}, ${topic}, ${qos}, ${event}, ${from_clientid}, ${clientid}, '完成');~"""
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+    save-msg-payload {
+      connector = local0mysql
+      created_at = 1747648382481
+      description = ""
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747649721407
+      parameters {
+        sql = """~
+          INSERT INTO message_detail(
+              mid, topic, qos, from_clientid, size, publish_received_time, payload
+          ) VALUES (${id}, ${topic}, ${qos}, ${clientid}, ${size}, ${timestamp}, ${payload});~"""
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+    save-sub-logs {
+      connector = local0mysql
+      created_at = 1747663042795
+      description = "保存订阅历史"
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747663042795
+      parameters {
+        sql = """~
+          INSERT INTO subscribe_logs(
+            clientid,
+            qos,
+            topic,
+            event
+          ) VALUES (
+            ${clientid},
+            ${qos},
+            ${topic},
+            ${event}
+          );~"""
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+    update-msg-drop-status {
+      connector = local0mysql
+      created_at = 1747650116559
+      description = ""
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747650116559
+      parameters {
+        sql = "update message_detail set drop_time = ${timestamp}, status = '已丢弃' where mid = ${id};"
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+    update-status-latency {
+      connector = local0mysql
+      created_at = 1747650006538
+      description = ""
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747650272965
+      parameters {
+        sql = "update message_detail set clientid = ${clientid}, acked_time = ${timestamp}, status = '已接收', latency = ${timestamp} - publish_received_time where mid = ${id};"
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+  }
+}
+connectors {
+  mysql {
+    local0mysql {
+      database = iot_data
+      password = public
+      pool_size = 8
+      resource_opts {
+        health_check_interval = "15s"
+        start_timeout = "5s"
+      }
+      server = "mysql-idea:3306"
+      ssl {enable = false, verify = verify_peer}
+      username = root
+    }
+  }
+}
+log {
+  console {}
+  file {}
+}
+rule_engine {
+  ignore_sys_message = true
+  jq_function_default_timeout = "10s"
+  rules {
+    save-msg {
+      actions = [
+        "mysql:save-msg-payload"
+      ]
+      description = ""
+      enable = true
+      metadata {last_modified_at = 1747649686083}
+      name = ""
+      sql = """~
+        SELECT
+          *,
+          bytesize(payload) as size
+        FROM
+          "#"~"""
+    }
+    save-msg-logs {
+      actions = [
+        "mysql:save-msg-log"
+      ]
+      description = ""
+      enable = true
+      metadata {created_at = 1747650549551, last_modified_at = 1747650549551}
+      name = ""
+      sql = """~
+        SELECT
+          *
+        FROM
+          "#",
+          "$events/message_dropped",
+          "$events/message_acked",
+          "$events/message_delivered",
+          "$events/delivery_dropped"~"""
+    }
+    sub-logs {
+      actions = [
+        "mysql:save-sub-logs"
+      ]
+      description = "订阅历史"
+      enable = true
+      metadata {created_at = 1747663044818, last_modified_at = 1747663044818}
+      sql = """~
+        SELECT
+          *
+        FROM
+          "$events/session_subscribed",
+          "$events/session_unsubscribed"~"""
+    }
+    update-msg-dropped {
+      actions = [
+        "mysql:update-msg-drop-status"
+      ]
+      description = ""
+      enable = true
+      metadata {created_at = 1747650125411, last_modified_at = 1747650125411}
+      name = ""
+      sql = """~
+        SELECT
+          id,
+          timestamp
+        FROM
+          "$events/message_dropped"~"""
+    }
+    update-msg-latency {
+      actions = [
+        "mysql:update-status-latency"
+      ]
+      description = ""
+      enable = true
+      metadata {last_modified_at = 1747650315759}
+      name = ""
+      sql = """~
+        SELECT
+          id,
+          timestamp,
+          clientid
+        FROM
+          "$events/message_acked"~"""
+    }
+  }
+}

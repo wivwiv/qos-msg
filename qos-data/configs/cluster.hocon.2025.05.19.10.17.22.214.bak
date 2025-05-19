@@ -1,0 +1,71 @@
+# This file is generated. Do not edit.
+# The configs are results of online config changes from UI/API/CLI.
+# To persist configs in this file, copy the content to etc/base.hocon.
+actions {
+  mysql {
+    save-msg-payload {
+      connector = local0mysql
+      created_at = 1747648382481
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1747649453102
+      parameters {
+        sql = """~
+          INSERT INTO message_detail(
+              mid, topic, qos, from_clientid, size, publish_received_time, payload
+          ) VALUES (${id}, ${topic}, ${qos}, ${clientid}, ${size}, ${timestamp}, ${payload});~"""
+        undefined_vars_as_null = false
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+  }
+}
+connectors {
+  mysql {
+    local0mysql {
+      database = iot_data
+      password = public
+      pool_size = 8
+      resource_opts {
+        health_check_interval = "15s"
+        start_timeout = "5s"
+      }
+      server = "mysql-idea:3306"
+      ssl {enable = false, verify = verify_peer}
+      username = root
+    }
+  }
+}
+log {
+  console {}
+  file {}
+}
+rule_engine {
+  ignore_sys_message = true
+  jq_function_default_timeout = "10s"
+  rules {
+    save-msg {
+      actions = [
+        "mysql:save-msg-payload"
+      ]
+      description = ""
+      enable = true
+      metadata {last_modified_at = 1747649239561}
+      sql = """~
+        SELECT
+          *,
+          bytesize(payload) as size
+        FROM
+          "#"~"""
+    }
+  }
+}
