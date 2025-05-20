@@ -1,5 +1,5 @@
 module.exports = {
   mysql: {
-    host: 'mysql-idea'
+    host: process.env.MYSQL_HOST || 'mysql-idea'
   }
 }

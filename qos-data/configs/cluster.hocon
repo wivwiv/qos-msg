@@ -6,10 +6,9 @@ actions {
     save-msg-log {
       connector = local0mysql
       created_at = 1747650543681
-      description = ""
       enable = true
       fallback_actions = []
-      last_modified_at = 1747650591915
+      last_modified_at = 1747728807308
       parameters {
         sql = """~
           INSERT INTO message_logs(
@@ -31,15 +30,19 @@ actions {
     save-msg-payload {
       connector = local0mysql
       created_at = 1747648382481
-      description = ""
       enable = true
       fallback_actions = []
-      last_modified_at = 1747649721407
+      last_modified_at = 1747729220122
       parameters {
         sql = """~
           INSERT INTO message_detail(
               mid, topic, qos, from_clientid, size, publish_received_time, payload
-          ) VALUES (${id}, ${topic}, ${qos}, ${clientid}, ${size}, ${timestamp}, ${payload});~"""
+          ) VALUES 
+          (
+            ${id},
+            ${topic},
+            ${qos},
+            ${clientid}, ${size}, ${timestamp}, ${payload});~"""
         undefined_vars_as_null = false
       }
       resource_opts {
@@ -77,6 +80,7 @@ actions {
       }
       resource_opts {
         batch_size = 1
+        batch_time = "0ms"
         health_check_interval = "15s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
@@ -110,12 +114,17 @@ actions {
     update-status-latency {
       connector = local0mysql
       created_at = 1747650006538
-      description = ""
       enable = true
       fallback_actions = []
-      last_modified_at = 1747650272965
+      last_modified_at = 1747729144477
       parameters {
-        sql = "update message_detail set clientid = ${clientid}, acked_time = ${timestamp}, status = '已接收', latency = ${timestamp} - publish_received_time where mid = ${id};"
+        sql = """~
+          update message_detail 
+            set clientid = ${clientid}, 
+            acked_time = ${timestamp}, 
+            status = '已接收', 
+            latency = ${timestamp} - publish_received_time 
+          where mid = ${id};~"""
         undefined_vars_as_null = false
       }
       resource_opts {
@@ -133,10 +142,13 @@ actions {
 }
 authentication = [
   {
+    acl_claim_name = acl
     algorithm = "hmac-based"
     disconnect_after_expire = true
+    enable = false
     from = password
     mechanism = jwt
+    precondition = ""
     secret = emqxsecret
     secret_base64_encoded = false
     use_jwks = false
@@ -207,7 +219,7 @@ rule_engine {
       ]
       description = ""
       enable = true
-      metadata {last_modified_at = 1747649686083}
+      metadata {last_modified_at = 1747729458436}
       name = ""
       sql = """~
         SELECT
@@ -222,11 +234,12 @@ rule_engine {
       ]
       description = ""
       enable = true
-      metadata {created_at = 1747650549551, last_modified_at = 1747650549551}
+      metadata {last_modified_at = 1747729442499}
       name = ""
       sql = """~
         SELECT
-          *
+          *,
+          coalesce(from_clientid, clientid) as from_clientid
         FROM
           "#",
           "$events/message_dropped",
@@ -241,6 +254,7 @@ rule_engine {
       description = "订阅历史"
       enable = true
       metadata {created_at = 1747663044818, last_modified_at = 1747663044818}
+      name = ""
       sql = """~
         SELECT
           *
@@ -269,7 +283,7 @@ rule_engine {
       ]
       description = ""
       enable = true
-      metadata {last_modified_at = 1747650315759}
+      metadata {last_modified_at = 1747729177883}
       name = ""
       sql = """~
         SELECT

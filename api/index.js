@@ -17,6 +17,30 @@ router.prefix('/api/v5.1');
 // 引入 static 中间件，从 web/ 目录加载静态网页
 app.use(serveStatic(path.join(__dirname, '../web')));
 
+// 反向代理 /api/v5/* 到 http://localhost:18083/api/v5/*
+const proxy = require('http-proxy').createProxyServer({
+  target: 'http://localhost:18083',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/v5/': '/api/v5/',
+  },
+})
+app.use(async (ctx, next) => {
+  if (ctx.path.startsWith('/api/v5/')) {
+    return new Promise((resolve, reject) => {
+      proxy.web(ctx.req, ctx.res, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  } else {
+    await next();
+  }
+})
+
 // 数据库配置
 const dbConfig = {
   host: config.mysql.host,
