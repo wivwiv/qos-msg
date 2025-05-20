@@ -131,6 +131,18 @@ actions {
     }
   }
 }
+authentication = [
+  {
+    algorithm = "hmac-based"
+    disconnect_after_expire = true
+    from = password
+    mechanism = jwt
+    secret = emqxsecret
+    secret_base64_encoded = false
+    use_jwks = false
+    verify_claims {}
+  }
+]
 connectors {
   mysql {
     local0mysql {
@@ -148,8 +160,42 @@ connectors {
   }
 }
 log {
-  console {}
-  file {}
+  audit {
+    enable = false
+    ignore_high_frequency_request = true
+    level = info
+    max_filter_size = 5000
+    path = "${EMQX_LOG_DIR}/audit.log"
+    payload_encode = text
+    rotation_count = 10
+    rotation_size = "50MB"
+    time_offset = system
+    timestamp_format = auto
+  }
+  console {
+    enable = true
+    formatter = text
+    level = warning
+    payload_encode = text
+    time_offset = system
+    timestamp_format = auto
+  }
+  file {
+    default {
+      enable = true
+      formatter = text
+      level = warning
+      path = "${EMQX_LOG_DIR}/emqx.log"
+      payload_encode = text
+      rotation_count = 10
+      rotation_size = "50MB"
+      time_offset = system
+      timestamp_format = auto
+    }
+  }
+  throttling {
+    time_window = "1m"
+  }
 }
 rule_engine {
   ignore_sys_message = true

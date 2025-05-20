@@ -8,6 +8,7 @@ services:
       EMQX_CLUSTER__NAME: qos-msg-cluster
     volumes:
       - ./qos-data:/opt/emqx/data
+      - ./qos-logs:/opt/emqx/log
     ports:
       - "1883:1883"
       - "18083:18083"
@@ -26,8 +27,15 @@ services:
       # 将本地的 sql/init.sql 文件挂载到容器内的 /docker-entrypoint-initdb.d/init.sql
       - ./sql:/docker-entrypoint-initdb.d:ro
 
-  # my_app:
-  #   build: .
-  #   ports:
-  #     - "3000:3000"
-  #   restart: always
+  my_app:
+    build: .
+    container_name: my_app-idea
+    depends_on:
+      - mysql
+      - emqx
+    volumes:
+      - ./api/config.js:/app/api/config.js
+      - ./api/index.js:/app/api/index.js
+    ports:
+      - "3000:3000"
+    restart: always
