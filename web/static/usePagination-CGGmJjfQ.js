@@ -1,0 +1,1 @@
+import{g as o,j as a}from"./index-Dp_94g6t.js";const l=()=>{const t=o(1),n=o(20),u=o(0),s=a({get(){return{page:t.value,limit:n.value,count:u.value}},set(e){t.value=e.page,n.value=e.limit,u.value=e.count||0}});return{page:t,limit:n,count:u,pageParams:s,resetPageNum:(e,r)=>e.length===1&&r!==1?r-1:r}};export{l as u};

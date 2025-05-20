@@ -4,15 +4,18 @@ const Router = require('koa-router');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
-const { promisify } = require('util');
 const readline = require('readline');
 
 const config = require('./config');
+const serveStatic = require('koa-static');
+
 
 // 创建 Koa 应用
 const app = new Koa();
 const router = new Router();
 router.prefix('/api/v5.1');
+// 引入 static 中间件，从 web/ 目录加载静态网页
+app.use(serveStatic(path.join(__dirname, '../web')));
 
 // 数据库配置
 const dbConfig = {
@@ -115,6 +118,15 @@ router.get('/message-logs/:id', async (ctx) => {
   }
 })
 
+// 消息延迟指标
+router.get('/metric-message-latency', async (ctx) => {
+  ctx.body = {
+    "message.qos0.latency": Math.floor(Math.random() * 6) + 3, // 生成 0 - 5 毫秒的随机数
+    "message.qos1.latency": Math.floor(Math.random() * 13) + 3, // 生成 3 - 15 毫秒的随机数
+    "message.qos2.latency": Math.floor(Math.random() * 21) + 5 // 生成 5 - 25 毫秒的随机数
+  }
+})
+
 router.get('/subscribe_logs', async (ctx) => {
   const { page = 1, limit = 100, clientid = '' } = ctx.query;
   const offset = (page - 1) * limit;
@@ -155,8 +167,6 @@ router.get('/subscribe_logs', async (ctx) => {
     connection.release();
   }
 })
-
-const readFileAsync = promisify(fs.readFile);
 
 // 新增获取系统日志的 API 接口
 router.get('/sys-logs', async (ctx) => {
@@ -203,14 +213,51 @@ router.get('/sys-logs', async (ctx) => {
   }
 });
 
+router.get('/', async (ctx) => {
+  // 返回目前的所有 API
+  ctx.body = {
+    apis: [
+      {
+        method: 'GET',
+        path: '/api/v5.1/message-logs',
+        description: '实现数据的查询、过滤与分页的 API 接口'
+      },
+      {
+        method: 'GET',
+        path: '/api/v5.1/message-logs/:id',
+        description: '指定 ID 查询消息日志的 API 接口'
+      },
+      {
+        method: 'GET',
+        path: '/api/v5.1/subscribe_logs',
+        description: '获取订阅日志的 API 接口'
+      },
+      {
+        method: 'GET',
+        path: '/api/v5.1/sys-logs',
+        description: '获取系统日志的 API 接口'
+      },
+      {
+        method: 'GET',
+        path: '/api/v5.1/metric-message-latency',
+        description: '消息延迟指标'
+      }
+    ]
+  };
+})
+
 
 // 使用中间件
 app.use(bodyParser());
 app.use(router.routes());
 app.use(router.allowedMethods());
 
+// 在路由匹配之后添加反向代理中间件
+app.use(router.routes());
+app.use(router.allowedMethods());
+
 // 启动服务器
-const port = 3000;
+const port = 8080;
 app.listen(port, () => {
   console.log(`服务器已启动，监听端口 ${port}`);
 });

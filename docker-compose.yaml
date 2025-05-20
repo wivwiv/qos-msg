@@ -27,9 +27,9 @@ services:
       # 将本地的 sql/init.sql 文件挂载到容器内的 /docker-entrypoint-initdb.d/init.sql
       - ./sql:/docker-entrypoint-initdb.d:ro
 
-  my_app:
+  my-app:
     build: .
-    container_name: my_app-idea
+    container_name: my-app-idea
     depends_on:
       - mysql
       - emqx
@@ -37,5 +37,5 @@ services:
       - ./api/config.js:/app/api/config.js
       - ./api/index.js:/app/api/index.js
     ports:
-      - "3000:3000"
+      - "8080:8080"
     restart: always
