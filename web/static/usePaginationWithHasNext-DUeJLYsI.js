@@ -1,0 +1,1 @@
+import{g as s,j as o}from"./index-F6_Zcexc.js";const t=()=>({limit:20,count:0,page:1,hasnext:!1}),l=u=>{const e=s({...t()}),n=o(()=>({limit:e.value.limit,page:e.value.page}));return{pageMeta:e,pageParams:n,initPageMeta:()=>{e.value=t()},setPageMeta:a=>{a.count===void 0?(e.value.count=-1,e.value.hasnext=a.hasnext):e.value.count=a.count,e.value.page=a.page}}};export{l as u};

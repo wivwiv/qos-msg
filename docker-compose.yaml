@@ -15,6 +15,14 @@ services:
       - "8083:8083"
     restart: always
 
+  emqx2:
+    image: emqx/emqx-enterprise:5.9.0
+    container_name: qos-msg-idea-2
+    environment:
+      EMQX_NODE__NAME: qos-msg-2@127.0.0.1
+      EMQX_CLUSTER__NAME: qos-msg-cluster
+    restart: always
+
   mysql:
     image: mysql:8.0.18
     container_name: mysql-idea
@@ -27,15 +35,22 @@ services:
       # 将本地的 sql/init.sql 文件挂载到容器内的 /docker-entrypoint-initdb.d/init.sql
       - ./sql:/docker-entrypoint-initdb.d:ro
 
-  my-app:
-    build: .
-    container_name: my-app-idea
-    depends_on:
-      - mysql
-      - emqx
-    volumes:
-      - ./api/config.js:/app/api/config.js
-      - ./api/index.js:/app/api/index.js
+  redis:
+    image: redis:latest
+    container_name: redis-idea
     ports:
-      - "8080:8080"
+      - "6379:6379"
     restart: always
+
+  # my-app:
+  #   build: .
+  #   container_name: my-app-idea
+  #   depends_on:
+  #     - mysql
+  #     - emqx
+  #   volumes:
+  #     - ./api/config.js:/app/api/config.js
+  #     - ./api/index.js:/app/api/index.js
+  #   ports:
+  #     - "8080:8080"
+  #   restart: always

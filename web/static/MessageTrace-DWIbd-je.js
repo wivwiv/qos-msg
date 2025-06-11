@@ -1,1 +1,0 @@
-import{d as a,c as s,a as t,o}from"./index-Dp_94g6t.js";const r={class:"message-trace app-wrapper"},_=a({__name:"MessageTrace",setup(n){return(p,e)=>(o(),s("div",r,e[0]||(e[0]=[t("h1",null,"TODO:TODO:TODO:消息追踪",-1)])))}});export{_ as default};

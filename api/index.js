@@ -5,6 +5,7 @@ const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const jwt = require('jsonwebtoken');
 
 const config = require('./config');
 const serveStatic = require('koa-static');
@@ -52,6 +53,129 @@ const dbConfig = {
 // 创建数据库连接池
 const pool = mysql.createPool(dbConfig);
 
+// 定义消息编码 API 的 POST 请求路由
+router.post('/message-encoding', async (ctx) => {
+  try {
+    // 从请求体中获取必要的参数
+    const { payload, type, schema_name, opts } = ctx.request.body;
+
+    // 验证请求体是否包含必要的字段
+    if (!payload || !type || !schema_name) {
+      ctx.status = 400;
+      ctx.body = '请求体缺少必要字段，需要包含 payload、type 和 schema_name';
+      return;
+    }
+
+    // 这里可以添加实际的 schema_encode 或 schema_decode 逻辑
+    // 目前只是简单返回传入的 payload 作为示例
+    let result = payload;
+
+    // 设置响应状态码为 200
+    ctx.status = 200;
+    // 直接返回 Base64 编码后的字符串作为响应体
+    ctx.body = result;
+  } catch (error) {
+    console.error('消息编码 API 处理出错:', error);
+    ctx.status = 500;
+    ctx.body = '处理请求时发生错误';
+  }
+});
+
+// 签发 jwt token 的接口
+/**
+ * {
+  "exp": 1706844358,
+  "username": "emqx_u",
+  "acl": [ // 可选的 ACL 规则数组
+    {
+      "permission": "allow",
+      "action": "subscribe",
+      // `eq` 前缀意味着该规则仅适用于主题过滤器 t/1/#，但不适用于 t/1/x 或 t/1/y 等
+      "topic": "eq t/1/#",
+      // 该规则只匹配 QoS 1 但不匹配 QoS 0 或 2
+      "qos": [1]
+    },
+    {
+      // 禁止客户端发布 t/2 主题的保留消息，消息为非保留消息则是允许的
+      "permission": "deny",
+      "action": "publish",
+      "topic": "t/2",
+      "retain": true
+    },
+    {
+      // 禁止客户端发布或订阅 t/3 主题，包括所有 QoS 级别和保留消息
+      "permission": "deny",
+      "action": "all",
+      "topic": "t/3"
+    }
+  ]
+}
+ */
+router.post('/issue-jwt', async (ctx) => {
+  try {
+    const { exp, username, acl } = ctx.request.body;
+
+    // 验证必要参数
+    if (!exp || !username) {
+      ctx.status = 429;
+      ctx.body =  {
+        code: 429,
+        message: '请求体缺少必要字段，需要包含 exp 和 username',
+      };
+      return;
+    }
+    if (exp < Date.now() / 1000) {
+      ctx.status = 429;
+      ctx.body = {
+        code: 429,
+        message: 'exp 必须大于当前时间戳',
+      };
+      return;
+    }
+    if (acl && !Array.isArray(acl)) {
+      ctx.status = 429;
+      ctx.body = {
+        code: 429,
+        message: 'acl 必须是一个数组',
+      };
+      return;
+    }
+    for (const rule of acl) {
+      if (!rule.permission ||!rule.action ||!rule.topic) {
+        ctx.status = 429;
+        ctx.body = {
+          code: 429,
+          message: 'acl 数组中的每个规则都必须包含 permission、action 和 topic 字段',
+        };
+        return;
+      }
+    }
+
+    // 准备要签名的数据
+    const payload = {
+      username,
+      acl,
+      exp
+    };
+
+    // 使用系统预设的 secret 进行签名
+    const token = jwt.sign(payload, config.jwtSecret, {
+      algorithm: 'HS256',
+      expiresIn: exp
+    });
+
+    ctx.status = 200;
+    ctx.body = { token };
+  } catch (error) {
+    console.error('签发 JWT token 出错:', error);
+    ctx.status = 500;
+    ctx.body = {
+      code: 500,
+      message: '签发 JWT token 出错',
+      error: error.message
+    };
+  }
+});
 
 // 实现数据的查询、过滤与分页的 API 接口
 router.get('/message-logs', async (ctx) => {
