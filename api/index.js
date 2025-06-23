@@ -21,7 +21,7 @@ app.use(serveStatic(path.join(__dirname, '../web')));
 
 // 反向代理 /api/v5/* 到 http://localhost:18083/api/v5/*
 const proxy = require('http-proxy').createProxyServer({
-  target: 'http://localhost:18083',
+  target: config.proxyHost || 'http://localhost:18083',
   changeOrigin: true,
   pathRewrite: {
     '^/api/v5/': '/api/v5/',
