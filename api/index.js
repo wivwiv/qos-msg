@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const jwt = require('jsonwebtoken');
+const axios = require('axios')
 
 const config = require('./config');
 const serveStatic = require('koa-static');
@@ -52,6 +53,44 @@ const dbConfig = {
 
 // 创建数据库连接池
 const pool = mysql.createPool(dbConfig);
+
+/**
+ * curl --location 'http://127.0.0.1:8081/handleEncryption' \
+--header 'Content-Type: application/json' \
+--data '{
+  "topic": "testtopic/1",
+  "data": {
+    "name": "张三",
+    "age": 30,
+    "address": "北京市海淀区",
+    "telphone": "123456789",
+    "cards": {
+      "card1": "1234567890123456",
+      "card2": "9876543210987654"
+    }
+  }
+}
+ */
+router.post('/spu-encryption', async (ctx) => {
+  /**
+   * {
+      type: 'encode',
+      schema_name: 'spu-encryption',
+      payload: 'SGVsbG8gRnJvbSBNUVRUWCBDTEk=',
+      opts: ''
+    }
+   */
+  const data = ctx.request.body
+  const spuEndpoint = config.SPU.endpoint
+  const resp = await axios.post(spuEndpoint, {
+    topic: '',
+    data: Buffer.from(data.payload, 'base64').toString('utf-8')
+  })
+  const encrypedData = resp.data.data
+  // 将加密后的数据转换为 base64 字符串返回
+  ctx.body = Buffer.from(encrypedData).toString('base64')
+  ctx.status = 200
+})
 
 // 定义消息编码 API 的 POST 请求路由
 router.post('/message-encoding', async (ctx) => {
