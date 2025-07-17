@@ -70,7 +70,7 @@ redisClient.on('connect', () => {
   console.log('Redis connected');
 })
 
-router.get('/msg-latency', async (ctx) => {
+router.get('/metric-message-latency', async (ctx) => {
   // 从 Redis 获取延迟数据并计算统计信息
   const getLatencyStats = async (key) => {
     try {
@@ -104,16 +104,9 @@ router.get('/msg-latency', async (ctx) => {
         getLatencyStats('msg:latency:2')
       ]);
       ctx.body = {
-        qos1: {
-          avg_latency: qos1Stats.avg,
-          max_latency: qos1Stats.max,
-          min_latency: qos1Stats.min
-        },
-        qos2: {
-          avg_latency: qos2Stats.avg,
-          max_latency: qos2Stats.max,
-          min_latency: qos2Stats.min
-        }
+        "message.qos0.latency": 0, // QoS0 没有延迟统计
+        "message.qos1.latency": qos1Stats.avg,
+        "message.qos2.latency": qos2Stats.avg
       };
     } catch (error) {
       console.error('获取消息延迟统计失败:', error);
