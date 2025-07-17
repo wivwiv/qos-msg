@@ -1,6 +1,9 @@
 node_modules
 .DS_Store
 .env
+.env.development
+.env.production
+.env.local
 qos-data/mnesia
 qos-data/trace
 qos-data/cluster.uuid

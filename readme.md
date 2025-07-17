@@ -11,7 +11,8 @@ docker compose up -d
 ## 加解密配置
 
 1. config.js 中配置 SPU 服务的 endpoint
-2. QoS 中配置 Schema Registry-HTTP 的地址为 http://127.0.0.1:8080/api/v5.1/spu-encryption
+2. QoS 中配置 Schema Registry-HTTP 的地址为 http://my-app-idea:8080/api/v5.1/spu-encryption
+  本地开发：http://192.168.55.22:8080/api/v5.1/spu-encryption
 3. QoS -> 数据智能中心 -> 消息转换，配置：
   消息来源主题：#
   消息格式转换：

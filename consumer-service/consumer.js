@@ -1,11 +1,43 @@
 const mqtt = require('mqtt');
 
-// 连接本地 MQTT 服务器，根据 docker-compose.yaml 可知端口为 1883
-const client = mqtt.connect('mqtt://localhost:1883', {
+function getToken(username, sub_topics = [], pub_topics = []) {
+  // 发送 HTTP 请求获取 JWT token
+  return fetch('http://60.204.205.153:8081/generateJwt', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // 1 天过期
+      exp: Math.floor(Date.now()/1000) + 86400,
+      username,
+      acl: [
+        ...sub_topics.map(topic => ({
+          permission: "allow",
+          action: "subscribe", 
+          topic,
+        })),
+        ...pub_topics.map(topic => ({
+          permission: "allow",
+          action: "publish",
+          topic,
+        })),
+      ]
+    })
+  })
+  .then(response => response.text())
+  .catch(error => {
+    console.error('获取 token 失败:', error);
+    return null;
+  });
+}
+
+// 连接 MQTT 服务器
+const client = mqtt.connect('mqtt://60.204.205.153:1889', {
   clean: true, // 不清除会话
   clientId: 'consumer-service-1',
 });
-const client2 = mqtt.connect('mqtt://localhost:1883', {
+const client2 = mqtt.connect('mqtt://60.204.205.153:1889', {
   clean: false, // 不清除会话
   clientId: 'consumer-service-2',
 });
@@ -37,6 +69,7 @@ client.on('connect', function () {
 // 接收到消息回调
 client.on('message', function (topic, message, packet) {
   // 打印消息的 topic, qos, msg
+  console.log('c1 接收消息: 已加密');
   console.log('Topic:', topic);
   console.log('QoS:', packet.qos);
   console.log('Message:', message.toString());

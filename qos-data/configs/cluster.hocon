@@ -6,6 +6,7 @@ actions {
     send-to-webhook {
       connector = "public-web-server"
       created_at = 1748253893647
+      description = ""
       enable = true
       fallback_actions = []
       last_modified_at = 1748253893647
@@ -16,6 +17,7 @@ actions {
       }
       resource_opts {
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -43,6 +45,7 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -73,6 +76,7 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -106,6 +110,7 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -128,6 +133,7 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -156,6 +162,7 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -165,6 +172,33 @@ actions {
     }
   }
   redis {
+    clean-latency-list {
+      connector = "redis-local"
+      created_at = 1752660290219
+      description = ""
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1752660290219
+      parameters {
+        command_template = [
+          LTRIM,
+          "msg:latency:${qos}",
+          "0",
+          "29"
+        ]
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        health_check_timeout = "60s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
     msg-drop {
       connector = "redis-local"
       created_at = 1748248799889
@@ -184,6 +218,32 @@ actions {
         batch_size = 1
         batch_time = "0ms"
         health_check_interval = "3s"
+        health_check_timeout = "60s"
+        inflight_window = 100
+        max_buffer_bytes = "256MB"
+        query_mode = async
+        request_ttl = "45s"
+        worker_pool_size = 16
+      }
+    }
+    set-latency {
+      connector = "redis-local"
+      created_at = 1752659188795
+      enable = true
+      fallback_actions = []
+      last_modified_at = 1752742523618
+      parameters {
+        command_template = [
+          LPUSH,
+          "msg:latency:${qos}",
+          """{"publish_received_at": ${publish_received_at}, "acked_at": ${timestamp}}"""
+        ]
+      }
+      resource_opts {
+        batch_size = 1
+        batch_time = "0ms"
+        health_check_interval = "15s"
+        health_check_timeout = "60s"
         inflight_window = 100
         max_buffer_bytes = "256MB"
         query_mode = async
@@ -535,6 +595,24 @@ log {
     time_window = "1m"
   }
 }
+message_transformation {
+  transformations = [
+    {
+      description = ""
+      failure_action = drop
+      log_failure {level = warning}
+      name = jiami
+      operations = [
+        {key = payload, value = payload}
+      ]
+      payload_decoder {type = none}
+      payload_encoder {schema = encrypt, type = external_http}
+      topics = [
+        "#"
+      ]
+    }
+  ]
+}
 mqtt {
   await_rel_timeout = "300s"
   client_attrs_init = []
@@ -642,6 +720,21 @@ rule_engine {
           "$events/message_delivered",
           "$events/delivery_dropped"~"""
     }
+    set-qos {
+      actions = [
+        "redis:set-latency",
+        "redis:clean-latency-list"
+      ]
+      description = ""
+      enable = true
+      metadata {last_modified_at = 1752742529480}
+      name = ""
+      sql = """~
+        SELECT
+          *
+        FROM
+          "$events/message/acked"~"""
+    }
     sub-logs {
       actions = [
         "mysql:save-sub-logs"
@@ -687,6 +780,30 @@ rule_engine {
           clientid
         FROM
           "$events/message_acked"~"""
+    }
+  }
+}
+schema_registry {
+  external {}
+  schemas {
+    encrypt {
+      parameters {
+        connect_timeout = "15s"
+        enable_pipelining = 100
+        headers {}
+        max_inactive = "10s"
+        max_retries = 2
+        pool_size = 8
+        pool_type = random
+        request_timeout = "10s"
+        ssl {
+          enable = false
+          middlebox_comp_mode = true
+          verify = verify_peer
+        }
+        url = "http://192.168.55.22:8080/api/v5.1/spu-encryption"
+      }
+      type = external_http
     }
   }
 }
