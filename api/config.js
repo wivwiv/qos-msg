@@ -7,7 +7,7 @@ if (result.error) {
   dotenv.config();
 }
 
-module.exports = {
+const config = {
   SPU: {
     endpoint: process.env.SPU_ENDPOINT || 'http://my-app-idea:8081/handleEncryption'
   },
@@ -28,3 +28,6 @@ module.exports = {
   proxyHost: process.env.PROXY_HOST || 'http://qos-msg-idea:18083',
   jwtSecret: process.env.JWT_SECRET || "emqxsecret"
 }
+console.log(config)
+
+module.exports = config;
